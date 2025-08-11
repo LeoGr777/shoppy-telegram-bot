@@ -1,0 +1,33 @@
+# Virtual Environment
+.venv/
+venv/
+*.venv
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Build and distribution artifacts
+build/
+dist/
+*.egg-info/
+
+# Database and log files
+*.db
+*.sqlite3
+*.log
+
+# IDE-specific folders
+.vscode/
+.idea/
+
+# CS50
+cs50_requirements.txt
+
+# .env
+.env*
+
+# Misc
+Files/

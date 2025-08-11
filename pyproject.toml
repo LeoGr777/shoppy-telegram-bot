@@ -1,0 +1,19 @@
+# pyproject.toml
+
+[project]
+name = "shoppy-telegram-bot"
+version = "0.1.0"
+description = "A collaborative shopping list bot for Telegram."
+authors = [
+    { name = "Leo Grund", email = "leogrund10@gmail.com" },
+]
+requires-python = ">=3.9"
+dependencies = [
+    "python-telegram-bot"
+
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest"
+]
