@@ -66,7 +66,7 @@ def get_items(chat_id: int) -> list:
 def delete_item(item_id: int) -> bool:
     """Deletes an item from the database using its unique item_id."""
     try:
-        with sqlite3.connect(DB_NAME):
+        with sqlite3.connect(DB_NAME) as conn:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM items WHERE item_id = ?", (item_id,))
             # Check if a row was actually deleted
@@ -74,4 +74,17 @@ def delete_item(item_id: int) -> bool:
             return success
     except sqlite3.Error as e:
         logging.error(f"Failed to delete item: {e}")
+        return False
+    
+def clear_list(chat_id: int) -> bool:
+    """Drops the item list using its unique chat_id"""
+    try:
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM items WHERE chat_id = ?", (chat_id,))
+            # Check if a row was actually deleted
+            success = cursor.rowcount > 0
+            return success
+    except sqlite3.Error as e:
+        logging.error(f"Failed to delete list: {e}")
         return False
