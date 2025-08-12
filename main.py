@@ -28,9 +28,18 @@ TOKEN = os.getenv("API_KEY") # The variable name in the .env file is API_KEY
 
 # ### KEYBOARD SETUP ###
 def get_main_keyboard():
-    """Creates an inline keyboard with the 'Show List' button."""
+    """Creates an inline keyboard with buttons to control the bot."""
     keyboard = [
         [InlineKeyboardButton("📋 Liste anzeigen", callback_data='show_list')],
+        [InlineKeyboardButton("🗑️ Liste leeren", callback_data='clear_list')],
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+def get_confirmation_keyboard():
+    """Creates an inline keyboard with 'Yes' and 'No' for a confirmation prompt"""
+    keyboard = [
+        [InlineKeyboardButton("✅ Ja, Liste löschen", callback_data='confirm_clear')],
+        [InlineKeyboardButton("❌ Nein, Liste behalten", callback_data='cancel_clear')],
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -44,12 +53,26 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handles button clicks."""
+    """Handles all button clicks and routes them to the correct action."""
     query = update.callback_query
-    await query.answer()  # Acknowledge the button press
+    await query.answer()
 
     if query.data == 'show_list':
-        # Call the existing show_list function
+        await show_list(update, context)
+    
+    elif query.data == 'clear_list':
+        # Ask for confirmation
+        await query.edit_message_text(
+            text="Bist du sicher, dass du die gesamte Liste löschen möchtest?",
+            reply_markup=get_confirmation_keyboard()
+        )
+        
+    elif query.data == 'confirm_clear':
+        # User confirmed, execute the deletion
+        await clear_list_action(update, context)
+        
+    elif query.data == 'cancel_clear':
+        # User cancelled, go back to the main list view
         await show_list(update, context)
 
 async def add_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -151,38 +174,42 @@ async def done_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     try:
-        # If the full list should be cleared
-        if context.args[0] == "list":
-            
-            success = db.clear_list(chat_id)
+        item_number_to_delete = int(context.args[0])
+        items = db.get_items(chat_id)
 
+        if 0 < item_number_to_delete <= len(items):
+            # Find the item to delete by its number
+            item_to_delete = items[item_number_to_delete - 1]
+            item_id = item_to_delete[0] # We need the item_id for deletion
+
+            success = db.delete_item(item_id)
+            
             if success:
-                await update.message.reply_text("Super! Alles eingekauft.")
+                await update.message.reply_text("Super! Artikel wurde von der Liste entfernt.")
             else:
                 await update.message.reply_text("Ein Fehler ist aufgetreten.")
-
-        # If a single item should be deleted
         else:
-            item_number_to_delete = int(context.args[0])
-            items = db.get_items(chat_id)
-
-            if 0 < item_number_to_delete <= len(items):
-                # Find the item to delete by its number
-                item_to_delete = items[item_number_to_delete - 1]
-                item_id = item_to_delete[0] # We need the item_id for deletion
-
-                success = db.delete_item(item_id)
-                
-                if success:
-                    await update.message.reply_text("Super! Artikel wurde von der Liste entfernt.")
-                else:
-                    await update.message.reply_text("Ein Fehler ist aufgetreten.")
-            else:
-                await update.message.reply_text("Ungültige Nummer. Schau mit /list nach der richtigen Nummer.")
+            await update.message.reply_text("Ungültige Nummer. Schau mit /list nach der richtigen Nummer.")
 
     except ValueError:
         await update.message.reply_text("Das ist keine gültige Nummer.")
 
+async def clear_list_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Clear list of items after confirmation."""
+    chat_id = update.callback_query.message.chat_id
+    success = db.clear_list(chat_id)
+
+    if success:
+        message_text = "✅ Die gesamte Einkaufsliste wurde gelöscht."
+    else:
+        # If list was already empty
+        message_text = "Die Liste war bereits leer."
+
+    # Edit the current message with the result and show the main keyboard again
+    await update.callback_query.edit_message_text(
+        text=message_text,
+        reply_markup=get_main_keyboard()
+    )
 
 def main():
     """Starts the bot."""
