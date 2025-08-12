@@ -7,12 +7,13 @@ Main script to run a telegram bot which acts as a shopping list which can be use
 # Standard Libraries
 import os
 import logging
+import re
 
 # Third-party libraries
 from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import BadRequest
-from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler
+from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler,  MessageHandler, filters
 
 # Local application modules
 import database as db
@@ -30,6 +31,7 @@ TOKEN = os.getenv("API_KEY") # The variable name in the .env file is API_KEY
 def get_main_keyboard():
     """Creates an inline keyboard with buttons to control the bot."""
     keyboard = [
+        [InlineKeyboardButton("➕ Artikel hinzufügen", switch_inline_query_current_chat='/add ')],
         [InlineKeyboardButton("📋 Liste anzeigen", callback_data='show_list')],
         [InlineKeyboardButton("🗑️ Liste leeren", callback_data='clear_list')],
     ]
@@ -57,79 +59,98 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
+    # Show ist
     if query.data == 'show_list':
         await show_list(update, context)
     
+    # Clear list
     elif query.data == 'clear_list':
         # Ask for confirmation
         await query.edit_message_text(
             text="Bist du sicher, dass du die gesamte Liste löschen möchtest?",
             reply_markup=get_confirmation_keyboard()
         )
-        
+    # Confirmation for Clear list    
     elif query.data == 'confirm_clear':
         # User confirmed, execute the deletion
         await clear_list_action(update, context)
         
+    # Abortion for Clear list    
     elif query.data == 'cancel_clear':
         # User cancelled, go back to the main list view
         await show_list(update, context)
 
+    # Add item
+    elif query.data == 'add_item':
+        await add_item(update, context)
+
 async def add_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Adds one or more comma-separated items to the shopping list using a list of dictionaries."""
-    chat_id = update.message.chat_id
     
-    if not context.args:
-        await update.message.reply_text("Bitte gib an, was ich hinzufügen soll. Z.B.: /add 2x Milch, 1L Saft, Brot")
+    # Determine the source of the message
+    if update.message:
+        msg = update.message
+    elif update.edited_message:
+        msg = update.edited_message
+    else:
+        logging.warning("add_item: Update contains neither message nor edited_message: %s", update)
         return
 
-    # Join all arguments into one single string
-    full_input_string = ' '.join(context.args)
+    chat_id = msg.chat_id
+    message_text = msg.text or ""
+    logging.info("add_item called — chat_id=%s text=%s", chat_id, repr(message_text))
 
-    # Split the string by commas to get individual items
+    # Find /add in the message, allowing for variations and whitespace
+    m = re.search(r"/add(?:@\w+)?\s*(.*)", message_text, flags=re.IGNORECASE | re.DOTALL)
+    if m:
+        full_input_string = m.group(1).strip()
+    else:
+        # Fallback: manually search for /add in case of unexpected formatting
+        if "/add" in message_text:
+            idx = message_text.find("/add")
+            full_input_string = message_text[idx + len("/add"):].strip()
+        else:
+            await msg.reply_text("Please specify what to add. Example: /add 2x milk, 1L juice, bread")
+            return
+
+    if not full_input_string:
+        await msg.reply_text("Please specify what to add. Example: /add 2x milk, 1L juice, bread")
+        return
+
+    # Split into individual items by commas
     item_strings = [item.strip() for item in full_input_string.split(',')]
+    parsed_items = []
 
-    parsed_items = [] 
-
-    # Parse all items into a list of dictionaries
     for item_string in item_strings:
         if not item_string:
             continue
-
-        # Create list of item_quantities and items
-        parts = item_string.split() 
+        tokens = item_string.split()
         item_dict = {'item_quantity': None, 'item_name': ''}
-
-        if len(parts) > 1:
-            # Simple heuristic: Assume the first word is the quantity
-            item_dict['item_quantity'] = parts[0]
-            item_dict['item_name'] = ' '.join(parts[1:])
+        if len(tokens) > 1:
+            item_dict['item_quantity'] = tokens[0]
+            item_dict['item_name'] = ' '.join(tokens[1:])
         else:
-            # Only one word was given
             item_dict['item_name'] = item_string
-        
         parsed_items.append(item_dict)
 
-    # Now, process the list of dictionaries
+    # Insert items into the database
     added_items_list_for_user = []
     for item in parsed_items:
-        # Add the item to the database
-        db.add_item(
+        success = db.add_item(
             chat_id=chat_id,
             item_quantity=item['item_quantity'],
             item_name=item['item_name']
         )
-        
-        # Prepare the string for the confirmation message
+        if not success:
+            logging.error("DB insert failed for chat_id=%s item=%s", chat_id, item)
+        else:
+            logging.info("DB inserted chat_id=%s item=%s", chat_id, item)
+
         full_item_display = f"{item['item_quantity']} {item['item_name']}".strip() if item['item_quantity'] else item['item_name']
         added_items_list_for_user.append(full_item_display)
 
-    # Send a summary confirmation to the user
-    if added_items_list_for_user:
-        confirmation_message = "Folgendes wurde zur Liste hinzugefügt:\n- " + "\n- ".join(added_items_list_for_user)
-        await update.message.reply_text(confirmation_message)
-    else:
-        await update.message.reply_text("Ich konnte keine gültigen Artikel in deiner Nachricht finden.")
+    # Refresh the list instead of sending a separate confirmation
+    await show_list(update, context)
 
 
 async def show_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -229,6 +250,10 @@ def main():
     application.add_handler(CommandHandler("list", show_list)) 
     application.add_handler(CommandHandler("done", done_item))
     application.add_handler(CallbackQueryHandler(button_handler)) 
+    application.add_handler(MessageHandler(
+    filters.TEXT & filters.Regex(r"(^| )/add(@\w+)?\b"),
+    add_item
+    ))
 
     # Start the bot
     logging.info("Starting bot...")

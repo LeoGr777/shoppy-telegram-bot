@@ -7,6 +7,7 @@ This module contains the setup of the database as well as functions like adding 
 # 1.1 Standard Libraries
 import sqlite3
 import logging
+import os
 
 # =============================================================================
 #  DATABASE SETUP
@@ -16,6 +17,7 @@ DB_NAME = "shopping_list.db"
 def setup_database() -> None:
     """Creates the database file and the 'items' table if they don't exist."""
     try:
+        dbpath = os.path.abspath(DB_NAME)
         with sqlite3.connect(DB_NAME) as conn:
             cursor = conn.cursor()
             cursor.execute("""
@@ -26,9 +28,9 @@ def setup_database() -> None:
                     item_name TEXT NOT NULL
                 )
             """)
-        logging.info(f"Database '{DB_NAME}' setup complete.")
+        logging.info("Database setup complete. Pfad: %s", dbpath)
     except sqlite3.Error as e:
-        logging.error(f"Database error during setup: {e}")
+        logging.error("Database error during setup: %s", e)
 
 # =============================================================================
 #  CRUD FUNCTIONS (Create, Read, Update, Delete)
@@ -38,14 +40,15 @@ def add_item(chat_id: int, item_quantity: str, item_name: str) -> bool:
     """Adds a new item to the database for a specific chat."""
     try:
         with sqlite3.connect(DB_NAME) as conn:
-            cursor = conn.cursor()       
+            cursor = conn.cursor()
             cursor.execute(
                 "INSERT INTO items (chat_id, item_quantity, item_name) VALUES (?, ?, ?)",
                 (chat_id, item_quantity, item_name)
             )
+            logging.info("DB: Inserted id=%s chat_id=%s name=%s qty=%s", cursor.lastrowid, chat_id, item_name, item_quantity)
             return True
     except sqlite3.Error as e:
-        logging.error(f"Failed to add item: {e}")
+        logging.error("Failed to add item: %s", e)
         return False
 
 def get_items(chat_id: int) -> list:
