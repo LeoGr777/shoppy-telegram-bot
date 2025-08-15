@@ -31,3 +31,6 @@ cs50_requirements.txt
 
 # Misc
 Files/
+
+# Tests
+tests/
