@@ -57,19 +57,19 @@ def get_command_args(message_text: str, command: str) -> Optional[str]:
 def get_main_keyboard():
     """Creates an inline keyboard with buttons to control the bot."""
     keyboard = [
-        [InlineKeyboardButton("➕ Artikel hinzufügen", switch_inline_query_current_chat='/add ')],
+        [InlineKeyboardButton("➕ Add item", switch_inline_query_current_chat='/add ')],
         # [InlineKeyboardButton("📋 Liste anzeigen", callback_data='show_list')],
-        [InlineKeyboardButton("⛔ Artikel entfernen", switch_inline_query_current_chat='/done ')],
-        [InlineKeyboardButton("🗑️ Liste leeren", callback_data='clear_list')],
+        [InlineKeyboardButton("⛔ Remove item", switch_inline_query_current_chat='/done ')],
+        [InlineKeyboardButton("🗑️ Clear list", callback_data='clear_list')],
     ]
     return InlineKeyboardMarkup(keyboard)
 
 def get_confirmation_keyboard():
     """Creates an inline keyboard with 'Yes' and 'No' for a confirmation prompt"""
     keyboard = [
-        [InlineKeyboardButton("✅ Ja, alles löschen", callback_data='confirm_clear')],
-        [InlineKeyboardButton("📝 Nein, behalte ...", switch_inline_query_current_chat='/clearexcept ')],
-        [InlineKeyboardButton("❌ Abbrechen", callback_data='cancel_clear')],
+        [InlineKeyboardButton("✅ Yes, delete everything", callback_data='confirm_clear')],
+        [InlineKeyboardButton("📝 No, please keep ...", switch_inline_query_current_chat='/clearexcept ')],
+        [InlineKeyboardButton("❌ Abort", callback_data='cancel_clear')],
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -79,7 +79,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Sends a welcome message, then shows the list in a separate, editable message."""
     # Send a simple, non-editable welcome message.
     await update.message.reply_text(
-        "Hi, ich bin shoppy 🤖 Ich helfe dir beim Einkaufen."
+        "Hi, I am Shoppy 🤖 I'll help you shop."
     )
     
     # Force show_list to create a new menu message by clearing any old message ID.
@@ -92,9 +92,9 @@ async def show_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     items = db.get_items(chat_id)
 
     if not items:
-        message_text = "Die Einkaufsliste ist leer! 🎉"
+        message_text = "The shopping list is empty! 🎉"
     else:
-        message_text = "Das müssen wir einkaufen:\n"
+        message_text = "Shopping list:\n"
         for i, (item_id, item_quantity, item_name) in enumerate(items, 1):
             full_item = f"{item_quantity} {item_name}".strip() if item_quantity else item_name
             message_text += f"{i}. {full_item}\n"
@@ -135,7 +135,7 @@ async def add_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if not full_input_string:
-        await msg.reply_text("Bitte gib an, was ich hinzufügen soll. Z.B.: /add 2x Milch, 1L Saft, Brot")
+        await msg.reply_text("Please let me know what should be added. E.g.: /add 2x milk, 1L juice, bread")
         return
 
     item_strings = [item.strip() for item in full_input_string.split(',')]
@@ -192,13 +192,13 @@ async def done_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.chat_data.setdefault('last_error_message_ids', []).append(error_message.message_id)
 
     if not args_string:
-        await handle_error("Bitte gib die Nummern der Artikel an, die entfernt werden sollen. Z.B.: /done 1, 2 5")
+        await handle_error("Please type in the numbers of items which should be removed. E.g.: /done 1, 2 5")
         return
 
     number_strings = re.findall(r'\d+', args_string)
 
     if not number_strings:
-        await handle_error("Ich konnte keine gültigen Nummern in deiner Nachricht finden.")
+        await handle_error("I could not find valid numbers in your message. Please try again.")
         return
 
     numbers_to_delete = {int(n) for n in number_strings}
@@ -216,7 +216,7 @@ async def done_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
             invalid_numbers.append(str(num))
 
     if invalid_numbers:
-        await handle_error(f"Die Nummern {', '.join(invalid_numbers)} sind ungültig und wurden ignoriert.")
+        await handle_error(f"The numbers {', '.join(invalid_numbers)} are invalid and will be ignored.")
 
     if ids_to_delete:
         # Clean up all previous temporary messages (errors and commands)
@@ -251,12 +251,12 @@ async def clear_except(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args_string = get_command_args(message_text, "clearexcept")
 
     if not args_string:
-        await msg.reply_text("Bitte gib die Nummern der Artikel an, die behalten werden sollen. Z.B.: /clearexcept 1, 3")
+        await msg.reply_text("Please type the numbers of items which should be kept. E.g.: /clearexcept 1,3")
         return
 
     numbers_to_keep_str = re.findall(r'\d+', args_string)
     if not numbers_to_keep_str:
-        await msg.reply_text("Ich konnte keine gültigen Nummern in deiner Nachricht finden.")
+        await msg.reply_text("I could not find valid numbers in your message. Please try again..")
         return
 
     numbers_to_keep = {int(n) for n in numbers_to_keep_str}
@@ -293,7 +293,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if query.data == 'clear_list':
         await query.edit_message_text(
-            text="Bist du sicher, dass du die gesamte Liste löschen möchtest?",
+            text="Are you sure you want to delete the full list?",
             reply_markup=get_confirmation_keyboard()
         )
         

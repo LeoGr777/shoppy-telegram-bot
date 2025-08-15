@@ -8,3 +8,6 @@ __pycache__/
 .env
 dist/
 build/
+*.egg-info/
+*.db
+tests/
