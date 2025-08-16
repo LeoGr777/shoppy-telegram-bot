@@ -18,6 +18,7 @@ dist/
 *.db
 *.sqlite3
 *.log
+data/
 
 # IDE-specific folders
 .vscode/
