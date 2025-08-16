@@ -29,4 +29,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD python -c "print('ok')" || exit 1
 
 # Default command to start your bot
-CMD ["shoppy-telegram-bot"]
+CMD ["python", "main.py"]
