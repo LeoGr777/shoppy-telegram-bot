@@ -32,7 +32,7 @@ def setup_database() -> None:
                     item_name TEXT NOT NULL
                 )
             """)
-        logging.info("Database setup complete. Path: %s", dbpath)
+        logging.info("Database setup complete. Path: %s", DB_PATH)
     except sqlite3.Error as e:
         logging.error("Database error during setup: %s", e)
 
