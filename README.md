@@ -33,21 +33,46 @@ python main.py
 ```
 
 ### 2. Docker Deployment
+
+#### Prerequisites:
 ```bash
-docker build -t shoppy-telegram-bot:latest .
-docker run -d --name shoppy-telegram-bot \
-  --env-file .env \
-  --restart unless-stopped \
-  shoppy-telegram-bot:latest
+- Docker & Docker Compose installed  
+- A `.env` file in the project root with at least:
+  ```env
+  API_KEY=your-telegram-bot-token
+  # Optional:
+  DB_NAME=shopping_list.db
+  DB_DIR=/app/data
+```
+#### Prepare data directory (Linux hosts):
+```bash
+mkdir -p ./data
+# Container runs as UID:GID 1009:1009 → ensure write access on the host bind mount
+sudo chown -R 1009:1009 ./data
+sudo chmod 775 ./data
+```
+#### Build & start:
+```bash
+docker compose up -d --build
+```
+
+#### Notes:
+- The service binds ./data (host) to /app/data (container). Your SQLite DB will appear on the host as ./data/<DB_NAME>.
+- Security hardening is enabled in docker-compose.yaml (cap_drop: [ALL], security_opt: no-new-privileges:true).
+- If you run locally without Docker and want the same DB location, start with:
+```bash
+DB_DIR=./data python main.py
 ```
 
 ## Project Structure
 ```bash
 .
+├── data/                   # persisted DB (bind mount)
+│   └── database.db         # (generated at runtime)
 ├── main.py                 # Bot entrypoint
-├── database.py             # Database handling
 ├── pyproject.toml          # Python dependencies
-├── Dockerfile              # Docker build instructions
+├── docker-compose.yaml     # Docker config 
+├── dockerfile              # Docker build instructions
 ├── .dockerignore
 ├── .gitignore
 └── README.md
