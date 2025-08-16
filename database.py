@@ -12,14 +12,17 @@ import os
 # =============================================================================
 #  DATABASE SETUP
 # =============================================================================
-DB_NAME = "shopping_list.db"
+DB_NAME_DEFAULT = "shopping_list.db"
+DB_DIR  = os.getenv("DB_DIR", "/app/data")
+DB_NAME = os.getenv("DB_NAME", DB_NAME_DEFAULT)
+DB_PATH = os.getenv("DB_PATH", os.path.join(DB_DIR, DB_NAME))
 
 def setup_database() -> None:
     """Creates the database file and the 'items' table if they don't exist."""
     try:
-        dbpath = f"/app/data/{DB_NAME}" 
+        os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
         # Dev os.path.abspath(DB_NAME)
-        with sqlite3.connect(DB_NAME) as conn:
+        with sqlite3.connect(DB_PATH) as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS items (
