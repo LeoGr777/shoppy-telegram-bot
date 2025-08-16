@@ -20,8 +20,16 @@ COPY . /app
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir .
 
-# Create and switch to a non-root user for better security
-RUN useradd -m appuser
+# Create a non-root app user with fixed UID/GID to match the host folder
+# Note: Adjust APP_UID/APP_GID if you ever need different IDs.
+ARG APP_UID=1009
+ARG APP_GID=1009
+RUN groupadd -g ${APP_GID} appgroup && \
+    useradd -m -u ${APP_UID} -g ${APP_GID} appuser && \
+    mkdir -p /app/data && \
+    chown -R appuser:appgroup /app/data
+
+# Switch to the non-root user
 USER appuser
 
 # Optional: simple healthcheck to ensure container is running
