@@ -1,0 +1,37 @@
+# Defines the version of the Compose file format
+version: '3.9'
+
+services:
+  shoppy-telegram-bot:
+    # Build the Docker image from the Dockerfile in the current directory
+    build: .
+    # Name the resulting image for better management
+    image: shoppy-telegram-bot
+
+    # Automatically restart the container unless it is manually stopped
+    restart: unless-stopped
+
+    # --- Data Persistence ---
+    # Mount a host directory into the container to persist the database
+    volumes:
+      - ./data:/app/data
+
+    # --- Security Configuration ---
+    # Drop all special kernel capabilities. 
+    cap_drop:
+      - ALL
+    # Prevent the container from gaining new privileges
+    security_opt:
+      - no-new-privileges
+
+    # --- Secrets Configuration ---
+    # Load environment variables from a .env file in the same directory
+    environment:
+      - API_KEY=${API_KEY}
+
+    # --- Logging Configuration ---
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m" # Max size of a single log file
+        max-file: "3"   # Number of rotated log files to keep
