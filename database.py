@@ -12,17 +12,20 @@ import os
 # =============================================================================
 #  DATABASE SETUP
 # =============================================================================
-DB_NAME_DEFAULT = "shopping_list.db"
 DB_DIR  = os.getenv("DB_DIR", "/app/data")
-DB_NAME = os.getenv("DB_NAME", DB_NAME_DEFAULT)
+DB_NAME = os.getenv("DB_NAME", "shopping_list.db")
 DB_PATH = os.getenv("DB_PATH", os.path.join(DB_DIR, DB_NAME))
+
+def connect():
+    """Centralized connection function with correct path."""
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    return sqlite3.connect(DB_PATH, timeout=30)
 
 def setup_database() -> None:
     """Creates the database file and the 'items' table if they don't exist."""
     try:
-        os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-        # Dev os.path.abspath(DB_NAME)
-        with sqlite3.connect(DB_PATH) as conn:
+        with connect() as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS items (
@@ -43,7 +46,7 @@ def setup_database() -> None:
 def add_item(chat_id: int, item_quantity: str, item_name: str) -> bool:
     """Adds a new item to the database for a specific chat."""
     try:
-        with sqlite3.connect(DB_NAME) as conn:
+       with connect() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 "INSERT INTO items (chat_id, item_quantity, item_name) VALUES (?, ?, ?)",
@@ -58,7 +61,7 @@ def add_item(chat_id: int, item_quantity: str, item_name: str) -> bool:
 def get_items(chat_id: int) -> list:
     """Retrieves all items for a specific chat from the database."""
     try:
-        with sqlite3.connect(DB_NAME) as conn:
+       with connect() as conn:
             cursor = conn.cursor()     
             cursor.execute(
                 "SELECT item_id, item_quantity, item_name FROM items WHERE chat_id = ?",
@@ -73,7 +76,7 @@ def get_items(chat_id: int) -> list:
 def delete_item(item_id: int) -> bool:
     """Deletes an item from the database using its unique item_id."""
     try:
-        with sqlite3.connect(DB_NAME) as conn:
+       with connect() as conn:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM items WHERE item_id = ?", (item_id,))
             # Check if a row was actually deleted
@@ -86,7 +89,7 @@ def delete_item(item_id: int) -> bool:
 def clear_list(chat_id: int) -> bool:
     """Drops the item list using its unique chat_id"""
     try:
-        with sqlite3.connect(DB_NAME) as conn:
+       with connect() as conn:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM items WHERE chat_id = ?", (chat_id,))
             # Check if a row was actually deleted
