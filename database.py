@@ -17,7 +17,8 @@ DB_NAME = "shopping_list.db"
 def setup_database() -> None:
     """Creates the database file and the 'items' table if they don't exist."""
     try:
-        dbpath = os.path.abspath(DB_NAME)
+        dbpath = f"/app/data/{DB_NAME}" 
+        # Dev os.path.abspath(DB_NAME)
         with sqlite3.connect(DB_NAME) as conn:
             cursor = conn.cursor()
             cursor.execute("""
@@ -28,7 +29,7 @@ def setup_database() -> None:
                     item_name TEXT NOT NULL
                 )
             """)
-        logging.info("Database setup complete. Pfad: %s", dbpath)
+        logging.info("Database setup complete. Path: %s", dbpath)
     except sqlite3.Error as e:
         logging.error("Database error during setup: %s", e)
 
