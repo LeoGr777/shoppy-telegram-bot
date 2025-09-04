@@ -304,7 +304,8 @@ def main():
     application.add_handler(MessageHandler(filters.Regex(r'/add'), add_item))
     application.add_handler(MessageHandler(filters.Regex(r'/done'), done_item))
     application.add_handler(MessageHandler(filters.Regex(r'/clearexcept'), clear_except))
-    application.add_handler(CommandHandler("list", show_list)) 
+    #application.add_handler(MessageHandler(filters.Regex(r'/clear_list'), clear_list_action))
+    #application.add_handler(CommandHandler("list", show_list)) 
     application.add_handler(CallbackQueryHandler(button_handler)) 
 
     logging.info("Starting bot...")
