@@ -95,9 +95,8 @@ async def show_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message_text = "The shopping list is empty! 🎉"
     else:
         message_text = "Shopping list:\n"
-        for i, (item_id, item_quantity, item_name) in enumerate(items, 1):
-            full_item = f"{item_quantity} {item_name}".strip() if item_quantity else item_name
-            message_text += f"{i}. {full_item}\n"
+        for i, (item_id, item_name) in enumerate(items, 1):
+            message_text += f"{i}. {item_name}\n"
     
     menu_message_id = context.chat_data.get('menu_message_id')
     
@@ -138,26 +137,14 @@ async def add_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await msg.reply_text("Please let me know what should be added. E.g.: /add 2x milk, 1L juice, bread")
         return
 
+    # Create list of item strings
     item_strings = [item.strip() for item in full_input_string.split(',')]
     parsed_items = []
 
-    for item_string in item_strings:
-        if not item_string:
-            continue
-        tokens = item_string.split()
-        item_dict = {'item_quantity': None, 'item_name': ''}
-        if len(tokens) > 1:
-            item_dict['item_quantity'] = tokens[0]
-            item_dict['item_name'] = ' '.join(tokens[1:])
-        else:
-            item_dict['item_name'] = item_string
-        parsed_items.append(item_dict)
-
-    for item in parsed_items:
+    for item in item_strings:
         db.add_item(
             chat_id=chat_id,
-            item_quantity=item['item_quantity'],
-            item_name=item['item_name']
+            item_name=item,
         )
     
     try:
@@ -317,7 +304,8 @@ def main():
     application.add_handler(MessageHandler(filters.Regex(r'/add'), add_item))
     application.add_handler(MessageHandler(filters.Regex(r'/done'), done_item))
     application.add_handler(MessageHandler(filters.Regex(r'/clearexcept'), clear_except))
-    application.add_handler(CommandHandler("list", show_list)) 
+    #application.add_handler(MessageHandler(filters.Regex(r'/clear_list'), clear_list_action))
+    #application.add_handler(CommandHandler("list", show_list)) 
     application.add_handler(CallbackQueryHandler(button_handler)) 
 
     logging.info("Starting bot...")
