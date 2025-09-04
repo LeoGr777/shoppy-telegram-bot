@@ -20,7 +20,7 @@ Shoppy solves this problem directly within Telegram. It's simple, fast and acces
 - Works in private chats and groups.
 
 ### Example list:
-![example_list_bot](https://i.postimg.cc/MTB5ZGXF/photo-2025-09-04-18-39-40.jpg)
+![example_list_bot](https://i.postimg.cc/TYBsrhWC/photo-2025-09-04-18-48-11.jpg)
 
 ## Installation
 
