@@ -19,13 +19,11 @@ dist/
 *.sqlite3
 *.log
 data/
+app/
 
 # IDE-specific folders
 .vscode/
 .idea/
-
-# CS50
-cs50_requirements.txt
 
 # .env
 .env*
