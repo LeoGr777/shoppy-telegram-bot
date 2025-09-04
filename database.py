@@ -12,7 +12,8 @@ import os
 # =============================================================================
 #  DATABASE SETUP
 # =============================================================================
-DB_DIR  = os.getenv("DB_DIR", "/app/data")
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+DB_DIR  = os.getenv("DB_DIR", os.path.join(PROJECT_ROOT, "app", "data"))
 DB_NAME = os.getenv("DB_NAME", "shopping_list.db")
 DB_PATH = os.getenv("DB_PATH", os.path.join(DB_DIR, DB_NAME))
 
@@ -31,7 +32,6 @@ def setup_database() -> None:
                 CREATE TABLE IF NOT EXISTS items (
                     item_id INTEGER PRIMARY KEY,
                     chat_id INTEGER NOT NULL,
-                    item_quantity TEXT,
                     item_name TEXT NOT NULL
                 )
             """)
@@ -43,16 +43,16 @@ def setup_database() -> None:
 #  CRUD FUNCTIONS (Create, Read, Update, Delete)
 # =============================================================================
 
-def add_item(chat_id: int, item_quantity: str, item_name: str) -> bool:
+def add_item(chat_id: int, item_name: str) -> bool:
     """Adds a new item to the database for a specific chat."""
     try:
        with connect() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO items (chat_id, item_quantity, item_name) VALUES (?, ?, ?)",
-                (chat_id, item_quantity, item_name)
+                "INSERT INTO items (chat_id, item_name) VALUES (?, ?)",
+                (chat_id, item_name)
             )
-            logging.info("DB: Inserted id=%s chat_id=%s name=%s qty=%s", cursor.lastrowid, chat_id, item_name, item_quantity)
+            logging.info("DB: Inserted id=%s chat_id=%s name=%s", cursor.lastrowid, chat_id, item_name)
             return True
     except sqlite3.Error as e:
         logging.error("Failed to add item: %s", e)
@@ -64,7 +64,7 @@ def get_items(chat_id: int) -> list:
        with connect() as conn:
             cursor = conn.cursor()     
             cursor.execute(
-                "SELECT item_id, item_quantity, item_name FROM items WHERE chat_id = ?",
+                "SELECT item_id, item_name FROM items WHERE chat_id = ?",
                 (chat_id,)
             )  
             items = cursor.fetchall()
