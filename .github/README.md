@@ -30,7 +30,7 @@ Shoppy solves this problem directly within Telegram. It's simple, fast and acces
 ```bash
 git clone https://github.com/LeoGr777/shoppy-telegram-bot.git
 cd <repo>
-cp .env.example .env  # Add your API_KEY
+cp .env  # Add your API_KEY
 ```
 
 ### Docker Deployment
