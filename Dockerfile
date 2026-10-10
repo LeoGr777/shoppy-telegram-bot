@@ -1,40 +1,21 @@
-# Use official Python 3.11 slim image (small, secure, up-to-date)
-FROM python:3.11-slim
-
-# Environment settings:
-# - Prevent Python from writing .pyc files
-# - Force stdout/stderr to be unbuffered (logs show immediately)
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
-# Set working directory inside container
+FROM python:3.13-slim AS build
+COPY --from=ghcr.io/astral-sh/uv:0.12.23 /uv /bin/uv
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=never
 WORKDIR /app
+# Dependencies first for layer caching
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
+COPY .github/README.md .github/README.md
+COPY src ./src
+RUN uv sync --frozen --no-dev --no-editable
 
-# Copy only metadata first to leverage Docker build cache
-COPY pyproject.toml /app/
-
-# Copy the rest of the project files
-COPY . /app
-
-# Install dependencies and the project itself
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir .
-
-# Create a non-root app user with fixed UID/GID to match the host folder
-# Note: Adjust APP_UID/APP_GID if you ever need different IDs.
-ARG APP_UID=1009
-ARG APP_GID=1009
-RUN groupadd -g ${APP_GID} appgroup && \
-    useradd -m -u ${APP_UID} -g ${APP_GID} appuser && \
-    mkdir -p /app/data && \
-    chown -R appuser:appgroup /app/data
-
-# Switch to the non-root user
-USER appuser
-
-# Optional: simple healthcheck to ensure container is running
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD python -c "print('ok')" || exit 1
-
-# Default command to start your bot
-CMD ["python", "main.py"]
+FROM python:3.13-slim
+ARG APP_UID=1000
+ARG APP_GID=1000
+RUN groupadd -g ${APP_GID} app && useradd -u ${APP_UID} -g ${APP_GID} -M app \
+    && install -d -o app -g app /app/data
+COPY --from=build /app/.venv /app/.venv
+ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+WORKDIR /app
+USER app
+CMD ["python", "-m", "shoppy"]
