@@ -37,3 +37,8 @@ def resolve_numbers(items: list[tuple[int, str]], numbers: set[int]) -> tuple[li
 def ids_except(items: list[tuple[int, str]], numbers: set[int]) -> list[int]:
     """Item IDs of all entries whose 1-based number is not in numbers."""
     return [item_id for i, (item_id, _) in enumerate(items, 1) if i not in numbers]
+
+
+def parse_chat_ids(value: str) -> set[int]:
+    """Parse a comma-separated list of chat IDs. Raises ValueError on invalid entries."""
+    return {int(part) for part in value.split(",") if part.strip()}

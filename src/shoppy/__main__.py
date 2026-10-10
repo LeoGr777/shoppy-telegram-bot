@@ -6,6 +6,7 @@ import sys
 
 from shoppy.bot import build_application
 from shoppy.db import Database
+from shoppy.parsing import parse_chat_ids
 
 DEFAULT_DB_PATH = "/app/data/shopping_list.db"
 
@@ -21,11 +22,18 @@ def main() -> None:
     if not token:
         sys.exit("API_KEY is not set")
 
+    try:
+        allowed_chat_ids = parse_chat_ids(os.getenv("ALLOWED_CHAT_IDS", ""))
+    except ValueError:
+        sys.exit("ALLOWED_CHAT_IDS must be a comma-separated list of integers")
+    if not allowed_chat_ids:
+        logging.warning("ALLOWED_CHAT_IDS is empty, the bot will ignore all chats")
+
     db = Database(os.getenv("DB_PATH", DEFAULT_DB_PATH))
     db.setup()
 
     logging.info("Starting bot...")
-    build_application(token, db).run_polling()
+    build_application(token, db, allowed_chat_ids).run_polling()
 
 
 if __name__ == "__main__":

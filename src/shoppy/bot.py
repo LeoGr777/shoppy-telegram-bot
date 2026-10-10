@@ -6,10 +6,12 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.error import BadRequest
 from telegram.ext import (
     Application,
+    ApplicationHandlerStop,
     CallbackQueryHandler,
     CommandHandler,
     ContextTypes,
     MessageHandler,
+    TypeHandler,
     filters,
 )
 
@@ -208,13 +210,27 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await show_list(chat_id, context)
 
 
+async def restrict_chats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Drop updates from chats not in the allowlist."""
+    chat = update.effective_chat
+    if chat and chat.id in context.bot_data["allowed_chat_ids"]:
+        return
+    if chat:
+        logger.warning("Ignoring update from unauthorized chat %s (%s)", chat.id, chat.type)
+    raise ApplicationHandlerStop
+
+
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.error("Error while handling update %s", update, exc_info=context.error)
 
 
-def build_application(token: str, db: Database) -> Application:
+def build_application(token: str, db: Database, allowed_chat_ids: set[int]) -> Application:
     application = Application.builder().token(token).build()
     application.bot_data["db"] = db
+    application.bot_data["allowed_chat_ids"] = allowed_chat_ids
+
+    # Group -1 runs before all other handlers.
+    application.add_handler(TypeHandler(Update, restrict_chats), group=-1)
 
     application.add_handler(CommandHandler("start", start))
     for command, callback in (

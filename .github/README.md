@@ -34,7 +34,7 @@ git clone https://github.com/LeoGr777/shoppy-telegram-bot.git
 cd shoppy-telegram-bot
 uv sync
 uv run pytest && uv run ruff check
-API_KEY=<test-token> DB_PATH=./data/dev.db uv run python -m shoppy
+API_KEY=<test-token> ALLOWED_CHAT_IDS=<chat-id> DB_PATH=./data/dev.db uv run python -m shoppy
 ```
 
 ### Docker Deployment
@@ -43,6 +43,7 @@ Prerequisites: Docker with Compose and a `.env` file:
 
 ```
 API_KEY=<your-telegram-bot-token>
+ALLOWED_CHAT_IDS=<chat-id>,<chat-id>
 ```
 
 ```bash
@@ -54,6 +55,12 @@ Notes:
 - The container runs as UID/GID 1000 (build args `APP_UID`, `APP_GID`), so `./data` must be writable by that user.
 - The SQLite database (`DB_PATH`, default `/app/data/shopping_list.db`) also stores the ID of each chat's menu message, so the bot keeps editing the same message after a restart.
 - Hardening in `compose.yaml`: read-only root filesystem, `cap_drop: [ALL]`, `no-new-privileges`.
+
+### Access Control
+
+The bot only responds in chats listed in `ALLOWED_CHAT_IDS` (comma-separated). Updates from all other chats are ignored. If the variable is empty, the bot ignores every chat.
+
+To find a chat ID, write to the bot from that chat: the log shows `Ignoring update from unauthorized chat <id>`. Private chat IDs are positive, group IDs negative.
 
 ## Project Structure
 ```
