@@ -2,7 +2,7 @@
 services:
   shoppy:
     build: .
-    image: shoppy-telegram-bot:dev
+    image: shoppy-telegram-bot:2.0.0
     container_name: shoppy
     restart: unless-stopped
     env_file: .env
